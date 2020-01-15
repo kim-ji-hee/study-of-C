@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include <stdarg.h>
+#include <stdarg.h>	//매크로가 정의된 헤더 파일
 
 void printValues(char *types, ...)
 {
