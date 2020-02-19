@@ -1,6 +1,7 @@
 {
     "C_Cpp.errorSquiggles": "Disabled",
     "files.associations": {
-        "print.h": "c"
+        "print.h": "c",
+        "calcdata.h": "c"
     }
 }
