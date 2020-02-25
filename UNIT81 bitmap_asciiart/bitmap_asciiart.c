@@ -88,7 +88,80 @@ int main()
     width = infoHeader.biWidth;     //비트맵 이미지의 가로 크기
     height = infoHeader.biHeight;   //비트맵 이미지의 세로 크기
 
+    padding = (PIXEL_ALIGN-((width * PIXEL_SIZE) % PIXEL_ALIGN)) % PIXEL_ALIGN;
+    //이미지의 가로 크기에 픽셀 크기를 곱하여 가로 한 줄의 크기를 구하고 4로 나머지를 구함
+    //그리고 4에서 나머지를 빼주면 남는 공간을 구할 수 있음
+    //만약 남는 공간이 0이라면 최종 결과가 4가 되므로 여기서 다시 4로 나머지를 구함
 
+    if (size == 0)  //픽셀 데이터 크기가 0이라면
+    {
+        size = (width * PIXEL_SIZE + padding) * height;
+        //이미지의 가로 크기 * 픽셀 크기에 남는 공간을 더해주면 완전한 가로 한 줄 크기가 나옴
+        //여기에 이미지의 세로 크기를 곱해주면 픽셀 데이터의 크기를 구할 수 있음
+    }
 
+    image = malloc(size);   //픽셀 데이터의 크기만큼 동적 메모리 할당
+
+    fseek(fpBmp, fileHeader, bf0ffBits, SEEK_SET);
+    //파일 포인터를 픽셀 데이터의 시작 위치로 이동
+
+    if (fread(image, size, 1, fpBmp) < 1)
+    {
+        fclose(fpBmp);
+        return 0;
+        //파일에서 픽셀 데이터 크기만큼 읽음. 읽기에 실패하면 파일 포인터를 닫고 프로그램 종료
+    }
+
+    fclose(fpBmp);  //비트맵 파일 닫기
+
+    fpTxt = fopen("ascii.txt", "w");    //결과 출력용 텍스트 파일 열기
+    if (fpTxt == NULL)  //파일 열기에 실패하면
+    {
+        free(image);    //픽셀 데이터를 저장한 동적 메모리 해제
+        return 0;       //프로그램 종료
+    }
+    
+    //픽셀 데이터는 아래위가 뒤집혀서 저장되므로 아래쪽부터 반복
+    //세로 크기만큼 반복
+    for(int y=height-1; y>=0; y--)
+    {
+        //가로 크기만큼 반복
+        for(int x=0; x<width; x++)
+        {
+            //일렬로 된 배열에 접근하기 위해 인덱스를 계산
+            //(x * 픽셀크기)는 픽셀 가로 위치
+            //(y * (세로크기 * 픽셀크기))는 픽셀이 몇 번째 줄인 지 계산
+            //남는 공간 * y는 줄별로 누적된 남는 공간
+            int index = (x * PIXEL_SIZE) + (y * (width * PIXEL_SIZE)) + (padding * y);
+
+            //현재 픽셀의 주소를 RGBTRIPLE 포인터로 변환하여 RGBTRIPPLE 포인터에 저장
+            RGBTRIPLE *pixel = (RGBTRIPLE *)&image[index];
+
+            //RGBTRIPLE 구조체로 파랑, 초록, 빨강값을 가져옴
+            unsigned char blue = pixel->rgbtBlue;
+            unsigned char green = pixel->rgbtGreen;
+            unsigned char red = pixel->rgbtRed;
+
+            //파랑, 초록, 빨강값의 평균을 구하면 흑백 이미지를 얻을 수 있음
+            unsigned char gray = (red + green + blue) / PIXEL_SIZE;
+
+            //흑백값에 ASCII 문자의 개수를 곱한 뒤 256으로 나누면 흑백값에 따라
+            //ASCII 문자의 인덱스를 얻을 수 있음
+            char c = ascii[gray * sizeof(ascii) / 256];
+
+            //비트맵 이미지에서는 픽셀의 가로, 세로 크기가 똑같지만
+            //보통 ASCII 문자는 세로로 길쭉한 형태이므로 정사각형 모양과 비슷하게
+            //보여주기 위해 같은 문자를 두 번 저장해줌
+            fprintf(fpTxt, "%c%c", c, c);    //텍스트 파일에 문자 출력
+        }
+
+        fprintf(fpTxt, "\n"); //가로 픽셀 저장이 끝났으면 줄바꿈을 해줌
+    }
+
+    fclose(fpTxt);  //텍스트 파일 닫기
+
+    free(image);    //픽셀 데이터를 저장한 동적 메모리 해제
+
+    
 
 }
