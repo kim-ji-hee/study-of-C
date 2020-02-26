@@ -1,3 +1,7 @@
+#define _CRT_SECURE_NO_WARNINGS
+#include <stdio.h>
+#include <stdlib.h>
+
 #pragma pack(push, 1)   //구조체를 1바이트 크기로 정렬
 
 typedef struct _BITMAPFILEHEADER    //BMP 비트맵 파일 헤더 구조체
@@ -6,7 +10,7 @@ typedef struct _BITMAPFILEHEADER    //BMP 비트맵 파일 헤더 구조체
     unsigned int   bfSize;  //파일 크기
     unsigned short bfReserved1; //예약
     unsigned short bfReserved2; //예약
-    unsigned int   bf0ffBits;   //비트맵 데이터의 시작 위치
+    unsigned int   bfOffBits;   //비트맵 데이터의 시작 위치
 } BITMAPFILEHEADER;
 
 typedef struct _BITMAPINFOHEADER  //BMP 비트맵 정보 헤더 구조체(DIB헤더)
@@ -102,7 +106,7 @@ int main()
 
     image = malloc(size);   //픽셀 데이터의 크기만큼 동적 메모리 할당
 
-    fseek(fpBmp, fileHeader, bf0ffBits, SEEK_SET);
+    fseek(fpBmp, fileHeader, bfOffBits, SEEK_SET);
     //파일 포인터를 픽셀 데이터의 시작 위치로 이동
 
     if (fread(image, size, 1, fpBmp) < 1)
@@ -160,8 +164,7 @@ int main()
 
     fclose(fpTxt);  //텍스트 파일 닫기
 
-    free(image);    //픽셀 데이터를 저장한 동적 메모리 해제
+    free(image);    //픽셀 데이터를 저장한 동적 메모리 해제    
 
-    
-
+    return 0;
 }
