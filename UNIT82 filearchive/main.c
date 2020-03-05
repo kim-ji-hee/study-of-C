@@ -132,6 +132,62 @@ void list(PARCHIVE archive)    // 파일 목록 출력 함수 정의
     }
 }
 
+int extract(PARCHIVE archive, char *filename)   //파일 추출 함수 정의
+{
+    //파일 목록 연결 리스트를 순회
+    PFILE_NODE curr = archive->fileList.next;   //첫 번째 노드
+    while(curr!=NULL)
+    {
+        //추출할 파일이 있는 지 검사
+        if(strcmp(curr->desc.name, filename) == 0)
+        {
+            int ret = 0;
+            uint32_t size = curr->desc.size;
+            uint8_t *buffer = malloc(size);
+
+            //파일 데이터가 있는 곳으로 파일 포인터를 이동시킴
+            fseek(archive->fp, curr->desc.dataOffset, SEEK_SET);
+
+            //파일 데이터 읽기
+            if(fread(buffer, size, 1, archive->fp) < 1)
+            {
+                printf("아카이브 파일 읽기 실패\n");
+                ret = -1;   //-1은 실패
+                goto Error1; //buffer를 해제하는 에러 처리로 이동
+            }
+
+            //추출할 파일을 저장할 새 파일 생성
+            FILE *fp = fopen(filename, "wb");
+            if(fp == NULL)
+            {
+                printf("%s 파일 열기 실패\n", filename);
+                ret = -1;
+                goto Error1;   //buffer를 해제하는 에러 처리로 이동
+            }
+
+            //새로 생성된 파일에 파일 데이터 쓰기
+            if(fwrite(buffer, size, 1, fp) < 1)
+            {
+                printf("%s 파일 쓰기 실패\n", filename);
+                ret = -1;
+                goto Error2;    //fp를 닫고, buffer를 해제하는 에러 처리로 이동
+            }
+
+            printf("%s 파일 추출 성공\n크기: %d\n", filename, size);
+
+            Error2:
+                fclose(fp);     //파일 포인터 닫기
+            
+            Error1:
+                free(buffer);   //동적 메모리 해제
+
+                return ret;     //성공이냐 실패냐에 따라 0 또는 -1을 반환
+        }
+        curr = curr->next;
+    }
+    return -1;
+}
+
 int main()
 {
     PARCHIVE archive = malloc(sizeof(ARCHIVE));
@@ -219,7 +275,8 @@ int main()
         fseek(fp, currPos, SEEK_SET);
     }
 
-    list(archive);  //파일 목록 출력
+    //list(archive);  //파일 목록 출력
+    extract(archive, "hello.txt");  //hello.txt 파일 추출
 
 FINALIZE :  //파일 목록 연결 리스트를 순회하면서 메모리 해제ㅔ
     curr = archive->fileList.next;  //첫 번째 노드
