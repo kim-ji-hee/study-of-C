@@ -170,6 +170,70 @@ void parseJSON(char *doc, int size, JSON *json) //JSON 파싱 함수
 
 }
 
+char *getString(JSON *json, char *key)  //키에 해당하는 문자열을 가져오는 함수
+{
+    for (int i=0; i<TOKEN_COUNT; i++)   //토큰 개수만큼 반복
+    {
+        if(json->tokens[i].type == TOKEN_STRING && strcmp(json->tokens[i].string, key)==0)
+        //토큰 종류가 문자열이면서 토큰의 문자열이 키와 일치하면
+        {
+            if(json->tokens[i+1].type == TOKEN_STRING)  //바로 뒤의 토큰(i+1)이 문자열이면
+                return json->tokens[i+1].string;    //바로 뒤에 있는 토큰의 문자열 반환
+        }
+
+    }
+    return NULL;    //키를 찾지 못했으면 NULL 을 반환
+}
+
+
+char *getArrayString(JSON *json, char *key, int index)  //키에 해당하는 배열 중 인덱스를 지정하여 문자열을 가져오는 함수
+{
+    for (int i=0; i<TOKEN_COUNT; i++)   //토큰 개수만큼 반복
+    {
+        if(json->tokens[i].type == TOKEN_STRING && strcmp(json->tokens[i].string, key)==0)
+        //토큰 종류가 문자열이면서 토큰의 문자열이 키와 일치하면
+        {
+            if(json->tokens[i+1+index].type == TOKEN_STRING &&
+               json->tokens[i+1+index].isArray == true)  
+               //바로 뒤의 토큰 (i+1)부터 배열의 요소
+               //인덱스를 지정한 토큰이 문자열이면서 배열이면
+                return json->tokens[i+1+index].string;    //해당 토큰의 문자열 반환
+        }
+    }
+    return NULL;    //키를 찾지 못했으면 NULL 을 반환
+}
+
+int getArrayCount(JSON *json, char *key)    //키에 해당하는 배열의 요소 개수를 구하는 함수
+{
+    for (int i=0; i<TOKEN_COUNT; i++)   //토큰의 개수만큼 반복
+    {
+        if(json->tokens[i].type == TOKEN_STRING && strcmp(json->tokens[i].string, key)==0)
+        //토큰의 종류가 문자열이면서 토큰의 문자열이 키와 일치한다면
+        {
+            int j=0;
+            while(json->tokens[i+1+j].isArray==true)    //바로 뒤의 토큰(i+1)부터 isArray가 true인 토큰의 개수를 세어서 반환
+                j++;
+
+            return j;
+        }
+    }
+    return 0;   //키를 찾지 못했으면 0을 반환
+}
+
+int getNumber(JSON *json, char *key)    //키에 해당하는 숫자를 가져오는 함수
+{
+    for (int i=0; i<TOKEN_COUNT; i++)   //토큰의 개수만큼 반복
+    {
+        if(json->tokens[i].type == TOKEN_STRING && strcmp(json->tokens[i].string, key)==0)
+        //토큰의 종류가 숫자이면서 토큰의 문자열이 키와 일치한다면
+        {
+            if(json->tokens[i+1].type==TOKEN_NUMBER)   //바로 뒤의 토큰(i+1)이 숫자이면
+                return json->tokens[i+1].number;    //바로 뒤에 있는 토큰의 숫자 반환
+        }
+    }
+    return 0.0;   //키를 찾지 못했으면 0을 반환
+}
+
 void freeJSON(JSON *json)   //JSON 해제 함수
 {
     for(int i=0; i<TOKEN_COUNT; i++)
@@ -191,16 +255,18 @@ int main()
 
     parseJSON(doc, size, &json);    //JSON 문서 파싱
 
-    printf("Title: %s\n", json.tokens[1].string);
-    printf("Genre: %s\n", json.tokens[3].string);
-    printf("Director: %s\n", json.tokens[5].string);
+    printf("Title: %s\n", getString(&json, "Title"));
+    printf("Year: %d\n", (int)getNumber(&json, "Year"));
+    printf("Runtime: %d\n", (int)getNumber(&json, "Runtime"));
+    printf("Genre: %s\n", getString(&json, "Genre"));
+    printf("Director: %s\n", getString(&json, "Director"));
 
     printf("Actors:\n");
-    printf("    %s\n", json.tokens[7].string);
-    printf("    %s\n", json.tokens[8].string);
-    printf("    %s\n", json.tokens[9].string);
-    printf("    %s\n", json.tokens[10].string);
-    printf("    %s\n", json.tokens[11].string);
+    int actors = getArrayCount(&json, "Actors");    //Actors 배열의 개수를 구함
+    for(int i=0; i<actors; i++) //배열의 요소 개수만큼 반복
+        printf("    %s\n", getArrayString(&json, "Actors", i)); //인덱스를 지정하여 문자열을 가져옴
+
+    printf("imdbRating: %f\n", getNumber(&json, "imdbRating")); //imdbRating의 값 출력
 
     freeJSON(&json);    //json에 할당된 동적 메모리 해제
     free(doc);  //문서 동적 메모리 해제
